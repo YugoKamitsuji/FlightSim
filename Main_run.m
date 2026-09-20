@@ -21,7 +21,7 @@ global U
 % Dryden wind model. If the step size of the solver is changed, it is
 % cruicial to update it!
 % we use a predefined mean wind speed
-load('wind_table.mat'); 
+load('wind_table.mat');
 % wind magnitude will be set through a interpolation block in:
 %Wind_dir = 180 + 60;                      % deg clockwise from north
 %Angle_wind_at6m = 180 + 90 - atan(1.728/2.932)*180/pi ;
