@@ -9,10 +9,7 @@ dtr = pi/180;
 
 %% Environment parameters
 g = 9.81;   % gravitational acceleration (m/s^2)
-% drag coefficients
-Cd = 0.001; % was not used eventually
-% new drag implementation (used)
-cbar=0.04;
+cbar=0.04;  % drag coefficients
 %% LES Wind this need to be done one time if you cleared the workspace already
 %load('./wind/U.mat')
 global U
@@ -23,10 +20,10 @@ global U
 % we use a predefined mean wind speed
 load('wind_table.mat');
 % wind magnitude will be set through a interpolation block in:
-%Wind_dir = 180 + 60;                      % deg clockwise from north
-%Angle_wind_at6m = 180 + 90 - atan(1.728/2.932)*180/pi ;
-Wind_dir = 30 + 180 ; 
-Angle_wind_at6m = 180 + atan(1.728/2.932)*180/pi ;
+Wind_dir = 180 + 60;                      % deg clockwise from north
+Angle_wind_at6m = 180 + 90 - atan(1.728/2.932)*180/pi ;
+%Wind_dir = 30 + 180 ;
+%Angle_wind_at6m = 180 + atan(1.728/2.932)*180/pi ;
 V_wind_at6m = sqrt(2.932^2+1.728^2);      % m/s
 
 %% Quadcopter physical parameters -- prsshin - hexacopter -- reduce the mass for a quad-compatibility
