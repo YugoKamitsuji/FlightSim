@@ -11,20 +11,21 @@ dtr = pi/180;
 g = 9.81;   % gravitational acceleration (m/s^2)
 cbar=0.04;  % drag coefficients
 %% LES Wind this need to be done one time if you cleared the workspace already
-%load('./wind/U.mat')
-global U
+% load('./wind/U.mat')
+% global U
+
 %% Dryden model horizontal wind
-% sample noise time appears has to be set as one of the parameters of the
-% Dryden wind model. If the step size of the solver is changed, it is
-% cruicial to update it!
-% we use a predefined mean wind speed
-load('wind_table.mat');
-% wind magnitude will be set through a interpolation block in:
-Wind_dir = 180 + 60;                      % deg clockwise from north
-Angle_wind_at6m = 180 + 90 - atan(1.728/2.932)*180/pi ;
-%Wind_dir = 30 + 180 ;
-%Angle_wind_at6m = 180 + atan(1.728/2.932)*180/pi ;
-V_wind_at6m = sqrt(2.932^2+1.728^2);      % m/s
+% % sample noise time appears has to be set as one of the parameters of the
+% % Dryden wind model. If the step size of the solver is changed, it is
+% % cruicial to update it!
+% % we use a predefined mean wind speed
+% load('wind/wind_table.mat');
+% % wind magnitude will be set through a interpolation block in:
+% Wind_dir = 180 + 60;                      % deg clockwise from north
+% Angle_wind_at6m = 180 + 90 - atan(1.728/2.932)*180/pi ;
+% %Wind_dir = 30 + 180 ;
+% %Angle_wind_at6m = 180 + atan(1.728/2.932)*180/pi ;
+% V_wind_at6m = sqrt(2.932^2+1.728^2);      % m/s
 
 %% Quadcopter physical parameters -- prsshin - hexacopter -- reduce the mass for a quad-compatibility
 
@@ -133,11 +134,77 @@ sim('M_6DoF_BS_Full_backup_11_25_2018.slx')
 %%
 reset(gcf);reset(gca)
 set(0,'defaultLineLineWidth',2)
-set(0,'defaultAxesFontSize',12)
+set(0,'defaultAxesFontSize', 18)
+set(0,'defaultTextFontSize', 18)
 
 T_t = Pos.time;
 Position = Pos.signals.values;
+
 figure(1)
+clf
+ax = axes;
+hold(ax, 'on')
+
+% z = 0 の基準面
+xMin = min([Position(:,1); Position(:,4)]);
+xMax = max([Position(:,1); Position(:,4)]);
+yMin = min([Position(:,2); Position(:,5)]);
+yMax = max([Position(:,2); Position(:,5)]);
+[Xp, Yp] = meshgrid(linspace(xMin, xMax, 2), linspace(yMin, yMax, 2));
+surf(Xp, Yp, zeros(size(Xp)), ...
+    'FaceAlpha', 0.08, 'EdgeColor', 'none', 'FaceColor', [0.5 0.5 0.5], ...
+    'HandleVisibility', 'off');
+
+% 目標軌道：赤の破線
+plot3(Position(:,1), Position(:,2), -Position(:,3), '--r', ...
+    'LineWidth', 1.8, 'DisplayName', 'Nominal trajectory')
+
+% 実軌道：青 -> 黄のグラデーション
+scatter3(Position(:,4), Position(:,5), -Position(:,6), 20, T_t, 'filled', ...
+    'MarkerFaceAlpha', 0.9, 'DisplayName', 'Actual trajectory')
+
+% % 始点・終点を強調
+% plot3(Position(1,4), Position(1,5), -Position(1,6), 'ko', ...
+%     'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'w', ...
+%     'HandleVisibility', 'off')
+% plot3(Position(end,4), Position(end,5), -Position(end,6), 'ks', ...
+%     'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'y', ...
+%     'DisplayName', 'Actual end')
+
+% 時刻ラベル
+dx = 0.02 * (xMax - xMin);
+dy = 0.02 * (yMax - yMin);
+dz = 0.02 * max(abs(Position(:,6)));
+text(Position(1,4) + dx, Position(1,5) + dy, -Position(1,6) + dz, ...
+    't = 0 s', 'FontSize', 14, 'Color', 'k', ...
+    'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom')
+text(Position(end,4) + dx, Position(end,5) + dy, -Position(end,6) + dz, ...
+    sprintf('t = %.1f s', T_t(end)), 'FontSize', 14, 'Color', 'k', ...
+    'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom')
+text(Position(end,4) + dx, Position(end,5) - dy, -Position(end,6) - dz, ...
+    sprintf('z = %.2f m', -Position(end,6)), ...
+    'FontSize', 14, 'Color', 'k', ...
+    'HorizontalAlignment', 'left', 'VerticalAlignment', 'top')
+
+xlabel('x (m)', 'FontSize', 16)
+ylabel('y (m)', 'FontSize', 16)
+zlabel('z (m)', 'FontSize', 16)
+grid on
+box on
+view(3)
+
+ax.FontSize = 16;
+ax.LineWidth = 1.2;
+
+colormap(parula)   % 青 -> 黄
+caxis([T_t(1) T_t(end)])
+
+legend('Location', 'best')
+ylim([-10, 10])
+
+
+
+figure(2)
 subplot(3,1,1)
 plot(T_t,Position(:,1)/1000,'--b',T_t,Position(:,4)/1000,'r')
 legend('Nominal','Actucal')
@@ -153,13 +220,15 @@ xlabel('Time (sec)')
 ylabel('z (m)')
 
 Velocities = Vel.signals.values;
-figure(2)
+figure(3)
 subplot(3,1,1)
 plot(T_t,Velocities(:,1),'--b',T_t,Velocities(:,4),'r')
+ylabel('v_x (m/s)')
 legend('Nominal','Actucal')
 set(gca,'xticklabel',{[]})
 subplot(3,1,2)
 plot(T_t,Velocities(:,2),'--b',T_t,Velocities(:,5),'r')
+ylabel('v_y (m/s)')
 set(gca,'xticklabel',{[]})
 subplot(3,1,3)
 plot(T_t,Velocities(:,3),'--b',T_t,Velocities(:,6),'r')
@@ -167,7 +236,7 @@ ylabel('v_z (m/s)')
 xlabel('Time (sec)')
 
 
-figure(3)
+figure(4)
 subplot(3,1,1)
 plot(Pos.time,Angles)
 set(gca,'xticklabel',{[]})
@@ -185,27 +254,18 @@ ylabel('\tau (N m)')
 legend('\tau_x','\tau_y','\tau_z')
 
 
-figure(4)
+figure(5)
 plot(T_t,Rpms_fixed*60/(2*pi));hold on
 plot(T_t,Rpms*60/(2*pi))
 xlabel('Time (sec)')
 ylabel('Propeller speed (rad/s)')
 legend('\omega_1','\omega_2','\omega_3','\omega_4')
 
-figure(5)
+figure(6)
 plot(T_t,Wind)
 xlabel('Time (sec)')
 ylabel('Wind speed (m/s)')
 legend('w_x','w_y','w_z')
-
-figure(6)
-plot3(Position(:,1),Position(:,2),-Position(:,3),'--b')
-hold on
-plot3(Position(:,4),Position(:,5),-Position(:,6),'r')
-xlabel('x (m)')
-ylabel('y (m)')
-zlabel('z (m)')
-legend('Nominal trajectory','Actucal trajectory')
 
 figure(7)
 plot(T_t,Wind(:,3)./sqrt(sum(Wind(:,1:2).*Wind(:,1:2),2)))
