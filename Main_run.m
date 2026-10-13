@@ -141,48 +141,66 @@ T_t = Pos.time;
 Position = Pos.signals.values;
 
 figure(1)
+figure(1)
 clf
 ax = axes;
 hold(ax, 'on')
 
+% 3D表示用のデータ
+xNom = Position(:,1);
+yNom = Position(:,2);
+zNom = -Position(:,3);
+
+xAct = Position(:,4);
+yAct = Position(:,5);
+zAct = -Position(:,6);
+
+% 直方体サイズ [x y z]
+boxSize = [200 200 50];
+boxColor = [0.7 0.7 0.7];
+
+% 軌道の中心を基準に、両脇に配置
+xCenter = mean([min(xNom) max(xNom)]);
+yCenter = mean([min(yNom) max(yNom)]);
+zCenter = boxSize(3) / 2;     % 地面(z=0)から高さ50mの箱
+
+yOffset = boxSize(2) / 2 + 40; % 軌道から少し離す
+
+% 表示範囲
+xMin = min([xNom; xAct; xCenter - boxSize(1)/2]);
+xMax = max([xNom; xAct; xCenter + boxSize(1)/2]);
+yMin = min([yNom; yAct; yCenter - yOffset - boxSize(2)/2]);
+yMax = max([yNom; yAct; yCenter + yOffset + boxSize(2)/2]);
+zMax = max([zNom; zAct; boxSize(3)]);
+
 % z = 0 の基準面
-xMin = min([Position(:,1); Position(:,4)]);
-xMax = max([Position(:,1); Position(:,4)]);
-yMin = min([Position(:,2); Position(:,5)]);
-yMax = max([Position(:,2); Position(:,5)]);
 [Xp, Yp] = meshgrid(linspace(xMin, xMax, 2), linspace(yMin, yMax, 2));
 surf(Xp, Yp, zeros(size(Xp)), ...
     'FaceAlpha', 0.08, 'EdgeColor', 'none', 'FaceColor', [0.5 0.5 0.5], ...
     'HandleVisibility', 'off');
 
-% 目標軌道：赤の破線
-plot3(Position(:,1), Position(:,2), -Position(:,3), '--r', ...
+% 直方体を2つ描画
+drawCuboid3D(ax, [xCenter, yCenter - yOffset, zCenter], boxSize, boxColor);
+drawCuboid3D(ax, [xCenter, yCenter + yOffset, zCenter], boxSize, boxColor);
+
+% 目標軌道
+plot3(xNom, yNom, zNom, '--r', ...
     'LineWidth', 1.8, 'DisplayName', 'Nominal trajectory')
 
-% 実軌道：青 -> 黄のグラデーション
-scatter3(Position(:,4), Position(:,5), -Position(:,6), 20, T_t, 'filled', ...
-    'MarkerFaceAlpha', 0.9, 'DisplayName', 'Actual trajectory')
-
-% % 始点・終点を強調
-% plot3(Position(1,4), Position(1,5), -Position(1,6), 'ko', ...
-%     'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'w', ...
-%     'HandleVisibility', 'off')
-% plot3(Position(end,4), Position(end,5), -Position(end,6), 'ks', ...
-%     'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'y', ...
-%     'DisplayName', 'Actual end')
-
 % 時刻ラベル
+T_t = Pos.time;
 dx = 0.02 * (xMax - xMin);
 dy = 0.02 * (yMax - yMin);
-dz = 0.02 * max(abs(Position(:,6)));
-text(Position(1,4) + dx, Position(1,5) + dy, -Position(1,6) + dz, ...
+dz = 0.02 * zMax;
+
+text(xAct(1) + dx, yAct(1) + dy, zAct(1) + dz, ...
     't = 0 s', 'Color', 'k', ...
     'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom')
-text(Position(end,4) + dx, Position(end,5) + dy, -Position(end,6) + dz, ...
+text(xAct(end) + dx, yAct(end) + dy, zAct(end) + dz, ...
     sprintf('t = %.1f s', T_t(end)), 'Color', 'k', ...
     'HorizontalAlignment', 'left', 'VerticalAlignment', 'bottom')
-text(Position(end,4) + dx, Position(end,5) - dy, -Position(end,6) - dz, ...
-    sprintf('z = %.2f m', -Position(end,6)), ...
+text(xAct(end) + dx, yAct(end) - dy, zAct(end) - dz, ...
+    sprintf('z = %.2f m', zAct(end)), ...
     'Color', 'k', ...
     'HorizontalAlignment', 'left', 'VerticalAlignment', 'top')
 
@@ -196,11 +214,14 @@ view(3)
 ax.FontSize = 18;
 ax.LineWidth = 1.2;
 
-colormap(parula)   % 青 -> 黄
+colormap(parula)
 caxis([T_t(1) T_t(end)])
 
-legend('Location', 'best')
-ylim([-10, 10])
+legend('Location', 'best', 'FontSize', 20)
+
+xlim([xMin xMax])
+ylim([yMin yMax])
+zlim([0 zMax + 20])
 
 
 
@@ -271,3 +292,34 @@ figure(7)
 plot(T_t,Wind(:,3)./sqrt(sum(Wind(:,1:2).*Wind(:,1:2),2)))
 xlabel('Time (sec)')
 ylabel('$\frac{V_z}{\sqrt{v_x^2+v_y^2}}$','Interpreter', 'latex')
+
+function drawCuboid3D(ax, center, sizeVec, faceColor)
+dx = sizeVec(1) / 2;
+dy = sizeVec(2) / 2;
+dz = sizeVec(3) / 2;
+
+x = center(1);
+y = center(2);
+z = center(3);
+
+V = [x-dx y-dy z-dz;
+    x+dx y-dy z-dz;
+    x+dx y+dy z-dz;
+    x-dx y+dy z-dz;
+    x-dx y-dy z+dz;
+    x+dx y-dy z+dz;
+    x+dx y+dy z+dz;
+    x-dx y+dy z+dz];
+
+F = [1 2 3 4;
+    5 6 7 8;
+    1 2 6 5;
+    2 3 7 6;
+    3 4 8 7;
+    4 1 5 8];
+
+patch(ax, 'Vertices', V, 'Faces', F, ...
+    'FaceColor', faceColor, 'EdgeColor', [0.35 0.35 0.35], ...
+    'FaceAlpha', 0.75, 'HandleVisibility', 'off');
+end
+
